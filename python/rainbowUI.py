@@ -784,8 +784,12 @@ class RainbowUI:
                 pass
             self.toplist.append(i.id)
             # NOTE: if there are mutiple interfaces only the first one is displayed
+            try:
+                net_addr = i.networks.values()[0][0]
+            except:
+                net_addr = "Not Defined"
             self.print_line('|%s|%s|%s|%s' % (i.id, i.status.ljust(9), str(i.name.encode('utf-8')), 
-                i.networks.values()[0][0]))
+                net_addr))
         # say something if we got nothing back
         if not len(self.toplist):
             self.print_line('Query returned [0] instances.')

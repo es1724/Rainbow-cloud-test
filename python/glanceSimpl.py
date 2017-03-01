@@ -72,8 +72,11 @@ def get_list(type = None):
 
     list = []
     for i in glance.images.list(**kwargs):
-        if i is not None:
-            list.append(i)
+        try:
+            if i is not None:
+                list.append(i)
+        except:
+            pass
     return list
 
 
