@@ -888,7 +888,12 @@ class RainbowUI:
             self.toplist.append(i['id'])
             if 'name' not in i.keys():
                 i['name'] = 'Undefined'
-            self.print_line('|%s|%s|%s' % (str(i['id']), i['status'], str(i['name'].encode('utf-8'))))
+            #self.print_line('|%s|%s|%s' % (str(i['id']), i['status'], str(i['name'].encode('utf-8'))))
+            try:
+              self.print_line('|%s|%s|%s' % (str(i['id']), i['status'], str(i['name'].encode('utf-8'))))
+            except:
+              pass
+            
         if not len(self.toplist):
             self.print_line('Query returned [0] images.')
         return
