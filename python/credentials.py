@@ -32,6 +32,27 @@ def set_timeout():
         # set a default timeout value if not set
         os.environ['OS_TIMEOUT'] = '10'
 
+def get_v3_creds():
+    """ credentials session based auth versions. """
+    #endpoint_type='publicURL'
+    d = {'auth_url': os.environ['OS_AUTH_URL'],
+         'password': os.environ['OS_PASSWORD'],
+         'project_id': os.environ['OS_PROJECT_ID'],
+         'username': os.environ['OS_USERNAME'],
+         'user_domain_name': os.environ['OS_USER_DOMAIN_NAME']}
+    return d
+
+def get_v2_creds():
+    d = {'username': os.environ['OS_USERNAME'],
+         'password': os.environ['OS_PASSWORD'],
+         'auth_url': os.environ['OS_AUTH_URL'],
+         'user_domain_name': 'Default'}
+    if 'OS_TENANT_NAME' in os.environ.keys():
+        d['tenant_name'] = os.environ['OS_TENANT_NAME']
+    if 'OS_TENANT_ID' in os.environ.keys():
+        d['tenant_id'] = os.environ['OS_TENANT_ID']
+    return d
+
 def get_neutron_creds():
     
     set_timeout()
@@ -70,12 +91,29 @@ def get_nova_creds():
     d['region_name'] = os.environ['OS_REGION_NAME']
     return d
 
+def get_v2_session():
+    from keystoneauth1 import loading
+    from keystoneauth1 import session
+    loader = loading.get_plugin_loader('password')
+    creds = get_v2_creds()
+    auth = loader.load_from_options(**creds)
+    sess = session.Session(auth=auth)
+    return sess
+
+def get_v3_session():
+    """ for v3 auth we use session for auth """
+    from keystoneauth1 import loading
+    from keystoneauth1 import session
+    loader = loading.get_plugin_loader('password')
+    creds = get_v3_creds()
+    auth = loader.load_from_options(**creds)
+    sess = session.Session(auth=auth)
+    return sess
 
 class CredBox(tkSimpleDialog.Dialog):
     """ popup for manual entry of credentials """
 
     def body(self, master):
-
 
         # 2 segments user/pass and all
 
