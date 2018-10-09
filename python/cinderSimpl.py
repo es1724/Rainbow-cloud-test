@@ -44,7 +44,7 @@ def get_cinder_client():
     """ create an instance of the cinder object with credentials """
     from cinderclient import client
     VERSION = DEFAULT_API_VERSION
-    sess = get_v3_session()
+    sess = get_session()
     cinder = client.Client(VERSION, session=sess)
     return cinder
 
