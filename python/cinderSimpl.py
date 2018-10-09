@@ -29,21 +29,25 @@ import sys
 import time
 import logging
 import requests
-from credentials import get_nova_creds as get_cinder_creds
+
+from credentials import *
 
 try:
   requests.packages.urllib3.disable_warnings()
 except:
   pass
 
+DEFAULT_API_VERSION = '2'
 debug = False
 
-def get_cinder():
+def get_cinder_client():
     """ create an instance of the cinder object with credentials """
-    from cinderclient import client as cinderclient
-    ccreds = get_cinder_creds()
-    cinder = cinderclient.Client('1', **ccreds)
+    from cinderclient import client
+    VERSION = DEFAULT_API_VERSION
+    sess = get_v3_session()
+    cinder = client.Client(VERSION, session=sess)
     return cinder
+
 
 def cinder_create():
     """ create a small volume to test functionality
@@ -52,8 +56,8 @@ def cinder_create():
         @ params: none
         @returns volume object
     """
-    cinder = get_cinder()
-    v = {'size': 1, 'display_name': "RAINBOW-VOL01"}
+    cinder = get_cinder_client()
+    v = {'size': 1, 'name': "RAINBOW-VOL01"}
     try:
         vol = cinder.volumes.create(**v)
     except:
@@ -69,7 +73,7 @@ def cinder_poll(vol):
         @returns: volume object
 
     """
-    cinder = get_cinder()
+    cinder = get_cinder_client()
     vol = cinder.volumes.get(vol.id)
     return vol
 
@@ -80,15 +84,15 @@ def cinder_delete(vol):
         @returns: bool
 
     """
-    cinder = get_cinder()
+    cinder = get_cinder_client()
     # delete
-    print("deleting volume [%s]" % vol.display_name)
+    print("deleting volume [%s]" % vol.name)
     try:
         cinder.volumes.delete(vol)
-        print("delete of volume [%s] scheduled." % vol.display_name)
+        print("delete of volume [%s] scheduled." % vol.name)
         return True
     except:
-        print("delete of volume [%s] FAILED." % vol.display_name)
+        print("delete of volume [%s] FAILED." % vol.name)
         return False
  
 def check_cinder_create():
@@ -111,7 +115,7 @@ def check_cinder_create():
     else:
         print "\n\nCinder: FAIL\n\n"
         return rc
-    print "| %36s | %s  %s | %s\n\n" % (vol.id, vol.display_name,
+    print "| %36s | %s  %s | %s\n\n" % (vol.id, vol.name,
                              vol.size, vol.status)
     cinder_delete(vol)
     return rc
@@ -123,9 +127,7 @@ def check_cinder_api():
        @param - none
        @ return True/False (1|0)
     """
-    from cinderclient import client as cinderclient
-    ccreds = get_cinder_creds()
-    cinder = cinderclient.Client('1', **ccreds)
+    cinder = get_cinder_client()
     try:
         count = len(cinder.volumes.list())
         # if we have a list or no list and an auth token the test was good
