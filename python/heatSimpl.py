@@ -44,34 +44,32 @@ debug = False
 
 from Tkinter import *
 import tkSimpleDialog
-import keystoneclient
-import heatclient
 
-from keystoneclient.v2_0.client import Client as ksclient
-from heatclient.client import Client
 import heatclient.shell as shell
 import heatclient.exc as exc
-from credentials import get_keystone_creds
+from credentials import *
+
+
+
+DEFAULT_HEATCLIENT_VERSION = '1'
 
 
 # noinspection PyIncorrectDocstring
 class RainbowHeat(object):
     '''  class for interfacing with heat '''
 
-    def get_heat(self):
-        """ get_heat - return an instance of the heat client
+    def get_heat_client(self):
+        """ get_heat_client - return an instance of the heat client
     
             @requires - credentials.py
             @params: none
             @returns: instance of the heatclient.client.Client
         """
-    
-        kscreds = get_keystone_creds()
-        ks = ksclient(**kscreds)
-        heat_url = ks.service_catalog.url_for(service_type='orchestration',
-                                                     endpoint_type='publicURL')
-        auth_token = ks.auth_token
-        heat = Client('1', endpoint=heat_url, token=auth_token)
+        from heatclient import client
+
+        sess = get_v3_session()
+        heat = client.Client(DEFAULT_HEATCLIENT_VERSION, session=sess)
+
         return heat
 
     def stack_list(self):
@@ -81,7 +79,7 @@ class RainbowHeat(object):
             @returns list of stack objects
         """
         try:
-            hc = self.get_heat()
+            hc = self.get_heat_client()
             sl = []
             for i in hc.stacks.list():
                 sl.append(i)
@@ -100,7 +98,7 @@ class RainbowHeat(object):
         failure_count = 0
         fields = {'stack_id': sid}
         try:
-            hc = self.get_heat()
+            hc = self.get_heat_client()
             hc.stacks.delete(**fields)
         except exc.HTTPNotFound as e:
             failure_count += 1
@@ -126,7 +124,7 @@ class RainbowHeat(object):
     def get_list():
     #    print "get_list"
     # untested - written on spec
-        heat = get_heat()
+        heat = get_heat_client()
         list = []
         for i in heat.stacks.list():
             list.append(i)
