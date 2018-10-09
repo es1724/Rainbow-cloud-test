@@ -32,7 +32,6 @@ import tkSimpleDialog
 from inspect import currentframe, getframeinfo
 import requests
 from credentials import *
-from credentials import get_keystone_creds as get_neutron_creds
 from neutronSimpl import create_network
 
 try:
