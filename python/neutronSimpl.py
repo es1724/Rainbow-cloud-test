@@ -30,7 +30,10 @@ import requests
 from Tkinter import *
 import tkSimpleDialog
 
-from credentials import get_neutron_creds
+from neutronclient.v2_0 import client
+
+from credentials import *
+
 
 try:
   requests.packages.urllib3.disable_warnings()
@@ -46,14 +49,13 @@ LOG = logging.getLogger(__name__)
 LOG_FORMAT='%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
 LOG_DATE = '%m-%d %H:%M'
 
-def get_neutron():
-    neucreds = get_neutron_creds()
-    from neutronclient.v2_0 import client as neutronclient
-    neutron = neutronclient.Client(**neucreds)
+def get_neutron_client():
+    sess = get_v3_session()
+    neutron = client.Client(session=sess)
     return neutron
 
 def neutron_net_list():
-    neutron = get_neutron()
+    neutron = get_neutron_client()
     netlist = neutron.list_networks()
     return netlist
 
@@ -87,7 +89,7 @@ def create_network():
     return create_named_net(name)
 
 def create_named_net(name):
-    neutron = get_neutron()
+    neutron = get_neutron_client()
     net_id = check_network_exists(neutron, name)
     if net_id:
         return net_id
@@ -124,7 +126,7 @@ def create_named_net(name):
     return netid
 
 def delete_network(net_id):
-    neutron = get_neutron()
+    neutron = get_neutron_client()
     try:
         print('%s:Deleting network id [%s]' % (__name__, net_id))
         neutron.delete_network(net_id)
