@@ -24,7 +24,11 @@ import os
 import sys
 import logging
 import requests
-from credentials import get_keystone_creds
+ 
+from keystoneclient.v3 import client
+
+from credentials import *
+#from credentials import get_keystone_creds
 
 try:
   requests.packages.urllib3.disable_warnings()
@@ -33,20 +37,26 @@ except:
 
 debug = False
 
+#def get_keystone_client():
+#    kscreds = get_keystone_creds()
+#    from keystoneclient.v2_0 import Client as ks
+#    try:
+#        keystone = ks(**kscreds)
+#    except:
+#        e = sys.exc_info()[0]
+#        print ('ERROR: %s' % e.message)
+#        raise
+#    if 'OS_TENANT_NAME' not in os.environ.keys():
+#       os.environ['OS_TENANT_NAME'] = keystone.project_name
+#    if 'OS_TENANT_ID' not in os.environ.keys():
+#       os.environ['OS_TENANT_ID'] = keystone.project_id
+#    return keystone
 def get_keystone_client():
-    kscreds = get_keystone_creds()
-    from keystoneclient.v2_0 import Client as ks
-    try:
-        keystone = ks(**kscreds)
-    except:
-        e = sys.exc_info()[0]
-        print ('ERROR: %s' % e.message)
-        raise
-    if 'OS_TENANT_NAME' not in os.environ.keys():
-       os.environ['OS_TENANT_NAME'] = keystone.project_name
-    if 'OS_TENANT_ID' not in os.environ.keys():
-       os.environ['OS_TENANT_ID'] = keystone.project_id
-    return keystone
+
+    sess = get_v3_session()
+    ks = client.Client(interface='public', session=sess)
+    return ks
+
 
 def check_keystone():
     """check keystone api function"""
@@ -56,7 +66,7 @@ def check_keystone():
         e = sys.exc_info()[0]
         raise
         return 0
-    if len(keystone.auth_token):
+    if len(keystone.services.list()):
         print "\n\nKeystone: PASS\n\n"
         return 1
     else:
