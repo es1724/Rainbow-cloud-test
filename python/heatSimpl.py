@@ -67,7 +67,7 @@ class RainbowHeat(object):
         """
         from heatclient import client
 
-        sess = get_v3_session()
+        sess = get_session()
         heat = client.Client(DEFAULT_HEATCLIENT_VERSION, session=sess)
 
         return heat
