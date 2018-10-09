@@ -45,12 +45,15 @@ def get_v3_creds():
 def get_v2_creds():
     d = {'username': os.environ['OS_USERNAME'],
          'password': os.environ['OS_PASSWORD'],
-         'auth_url': os.environ['OS_AUTH_URL'],
-         'user_domain_name': 'Default'}
+         'auth_url': os.environ['OS_AUTH_URL']}
     if 'OS_TENANT_NAME' in os.environ.keys():
         d['tenant_name'] = os.environ['OS_TENANT_NAME']
+    if 'OS_PROJECT_NAME' in os.environ.keys():
+        d['tenant_name'] = os.environ['OS_PROJECT_NAME']
     if 'OS_TENANT_ID' in os.environ.keys():
         d['tenant_id'] = os.environ['OS_TENANT_ID']
+    if 'OS_PROJECT_ID' in os.environ.keys():
+        d['tenant_id'] = os.environ['OS_PROJECT_ID']
     return d
 
 def get_neutron_creds():
@@ -66,37 +69,12 @@ def get_neutron_creds():
     d['region_name'] = os.environ['OS_REGION_NAME']
     return d
 
-def get_keystone_creds():
-    set_timeout()
-    d = {'username': os.environ['OS_USERNAME'],
-         'password': os.environ['OS_PASSWORD'],
-         'auth_url': os.environ['OS_AUTH_URL'],
-         'timeout': os.environ['OS_TIMEOUT']}
-    if 'OS_TENANT_NAME' in os.environ.keys():
-        d['tenant_name'] = os.environ['OS_TENANT_NAME']
-    if 'OS_TENANT_ID' in os.environ.keys():
-        d['tenant_id'] = os.environ['OS_TENANT_ID']
-    d['region_name'] = os.environ['OS_REGION_NAME']
-    return d
-
-def get_nova_creds():
-    set_timeout()
-    d = {'username': os.environ['OS_USERNAME'],
-         'api_key': os.environ['OS_PASSWORD'],
-         'auth_url': os.environ['OS_AUTH_URL']}
-    if 'OS_TENANT_ID' in os.environ.keys():
-        d['project_id'] = os.environ['OS_TENANT_ID']
-    if 'OS_TENANT_NAME' in os.environ.keys():
-        d['project_id'] = os.environ['OS_TENANT_NAME']
-    d['region_name'] = os.environ['OS_REGION_NAME']
-    return d
-
 def get_v2_session():
-    from keystoneauth1 import loading
+    from keystoneauth1.identity import v2
     from keystoneauth1 import session
-    loader = loading.get_plugin_loader('password')
+    #from keystoneclient.v2_0 import client
     creds = get_v2_creds()
-    auth = loader.load_from_options(**creds)
+    auth = v2.Password(**creds)
     sess = session.Session(auth=auth)
     return sess
 
@@ -108,6 +86,17 @@ def get_v3_session():
     creds = get_v3_creds()
     auth = loader.load_from_options(**creds)
     sess = session.Session(auth=auth)
+    return sess
+
+def get_session():
+    """ for v3 auth we use session for auth """
+    from keystoneauth1 import loading
+    from keystoneauth1 import session
+    loader = loading.get_plugin_loader('password')
+    if '/v3' in os.environ['OS_AUTH_URL']:
+        sess = get_v3_session()
+    else:
+        sess = get_v2_session()
     return sess
 
 class CredBox(tkSimpleDialog.Dialog):
@@ -123,6 +112,7 @@ class CredBox(tkSimpleDialog.Dialog):
         Label(master, text="Project ID:").grid(row=3,sticky=E)
         Label(master, text="Site:").grid(row=4,sticky=E)
         Label(master, text="Auth URL:").grid(row=5,sticky=E)
+        Label(master, text="Domain:").grid(row=6,sticky=E)
         self.userV = StringVar()
         self.user = Entry(master, textvariable=self.userV)
         self.paswV = StringVar()
@@ -135,6 +125,8 @@ class CredBox(tkSimpleDialog.Dialog):
         self.site = Entry(master, textvariable=self.siteV)
         self.aurlV = StringVar()
         self.aurl = Entry(master, textvariable=self.aurlV)
+        self.domaV = StringVar()
+        self.doma = Entry(master, textvariable=self.domaV)
 
         self.set_env()
         self.user.grid(row=0, column=1)
@@ -143,6 +135,7 @@ class CredBox(tkSimpleDialog.Dialog):
         self.prid.grid(row=3, column=1)
         self.site.grid(row=4, column=1)
         self.aurl.grid(row=5, column=1)
+        self.doma.grid(row=6, column=1)
         return self.user  # initial focus
 
     def set_env(self):
@@ -150,25 +143,48 @@ class CredBox(tkSimpleDialog.Dialog):
             self.userV.set(os.environ['OS_USERNAME'])
         if 'OS_PASSWORD' in os.environ.keys():
             self.paswV.set(os.environ['OS_PASSWORD'])
-        if 'OS_TENANT_NAME' in os.environ.keys():
-            self.projV.set(os.environ['OS_TENANT_NAME'])
-        if 'OS_TENANT_ID' in os.environ.keys():
-            self.pridV.set(os.environ['OS_TENANT_ID'])
-        else:
-            self.pridV.set('Optional')
-        if 'OS_REGION_NAME' in os.environ.keys():
-            self.siteV.set(os.environ['OS_REGION_NAME'])
         if 'OS_AUTH_URL' in os.environ.keys():
             self.aurlV.set(os.environ['OS_AUTH_URL'])
+        if 'v3' in os.environ['OS_AUTH_URL']:
+            if 'OS_PROJECT_NAME' in os.environ.keys():
+                self.projV.set(os.environ['OS_PROJECT_NAME'])
+            if 'OS_PROJECT_ID' in os.environ.keys():
+                self.pridV.set(os.environ['OS_PROJECT_ID'])
+            else:
+                self.pridV.set('Optional')
+            if 'OS_TENANT_ID' in os.environ.keys():
+                self.pridV.set(os.environ['OS_TENANT_ID'])
+            if 'OS_USER_DOMAIN_NAME' in os.environ.keys():
+                self.domaV.set(os.environ['OS_USER_DOMAIN_NAME'])
+            else:
+                self.domaV.set(os.environ['OS_USER_DOMAIN_NAME'])
+        else:
+            if 'OS_TENANT_NAME' in os.environ.keys():
+                self.projV.set(os.environ['OS_TENANT_NAME'])
+            if 'OS_TENANT_ID' in os.environ.keys():
+                self.pridV.set(os.environ['OS_TENANT_ID'])
+            else:
+                self.pridV.set('Optional')
+            if 'OS_REGION_NAME' in os.environ.keys():
+                self.siteV.set(os.environ['OS_REGION_NAME'])
 
 
     def apply(self):
-        self.result = {'OS_USERNAME': self.userV.get().rstrip(),
-                       'OS_PASSWORD': self.paswV.get().rstrip(),
-                       'OS_TENANT_NAME': self.projV.get().rstrip(),
-                       'OS_TENANT_ID': self.pridV.get().rstrip(),
-                       'OS_REGION_NAME': self.siteV.get().rstrip(),
-                       'OS_AUTH_URL': self.aurlV.get().rstrip()}
+        if 'v3' in os.environ['OS_AUTH_URL']:
+            self.result = {'OS_USERNAME': self.userV.get().rstrip(),
+                           'OS_PASSWORD': self.paswV.get().rstrip(),
+                           'OS_PROJECT_NAME': self.projV.get().rstrip(),
+                           'OS_PROJECT_ID': self.pridV.get().rstrip(),
+                           'OS_USER_DOMAIN_NAME': self.domaV.get().rstrip(),
+                           'OS_AUTH_URL': self.aurlV.get().rstrip()}
+        else:
+            self.result = {'OS_USERNAME': self.userV.get().rstrip(),
+                           'OS_PASSWORD': self.paswV.get().rstrip(),
+                           'OS_TENANT_NAME': self.projV.get().rstrip(),
+                           'OS_TENANT_ID': self.pridV.get().rstrip(),
+                           'OS_REGION_NAME': self.siteV.get().rstrip(),
+                           'OS_AUTH_URL': self.aurlV.get().rstrip()}
+
 
 
 class PassBox(tkSimpleDialog.Dialog):
