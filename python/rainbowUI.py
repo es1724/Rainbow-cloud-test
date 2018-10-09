@@ -340,12 +340,14 @@ class RainbowUI:
                 pass
             try:
                 if 'OS_PROJECT_NAME' in os.environ.keys():
+                    os.environ['OS_TENANT_ID'] = os.environ['OS_PROJECT_NAME']
                     self.userV.set('Project:' + os.environ['OS_PROJECT_NAME'])
                 else:
                     self.userV.set('Project:' + os.environ['OS_TENANT_NAME'])
             except:
                 pass
             try:
+                
                 if os.environ['OS_TENANT_ID'] == 'Optional':
                     del os.environ['OS_TENANT_ID']
             except:
@@ -360,9 +362,16 @@ class RainbowUI:
     def _auth_check(self):
         self.print_line("Initializing auth check...")
 
-        if (not os.environ.get('OS_TENANT_ID')) and (not os.environ.get('OS_TENANT_NAME')) and (not os.environ.get('OS_PROJECT_ID')) and (not os.environ.get('OS_PROJECT_NAME')):
-            self._key_error('OS_TENANT_ID or OS_TENANT_NAME')
-            return
+        if 'v3' in os.environ['OS_AUTH_URL']:
+            print "using v3 auth.."
+            if (not os.environ.get('OS_PROJECT_ID')) and (not os.environ.get('OS_PROJECT_NAME')):
+                self._key_error('OS_PROJECT_ID or OS_PROJECT_NAME')
+                return
+        else:
+            print "using v2 auth.."
+            if (not os.environ.get('OS_TENANT_ID')) and (not os.environ.get('OS_TENANT_NAME')):
+                self._key_error('OS_TENANT_ID or OS_TENANT_NAME')
+                return
         for key in ['OS_USERNAME', 'OS_PASSWORD', 'OS_AUTH_URL' ]:
             if key not in os.environ.keys():
                 self._key_error(key)
