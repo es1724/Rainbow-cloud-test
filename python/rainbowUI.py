@@ -22,7 +22,7 @@
 import os
 import sys
 import six
-from heatclient.openstack.common import strutils
+#from heatclient.openstack.common import strutils
 import subprocess
 from buttons import *
 from Tkinter import *
@@ -46,12 +46,12 @@ from neutronSimpl import *
 from keystoneSimpl import check_keystone
 from keystoneSimpl import get_keystone_client
 
-version = '2.5.2'
-DESCRIPTION = "Rainbow UI openstack test tool."
+version = '3.0.0'
+DESCRIPTION = "Rainbow UI openstack test framework."
 DEBUG = 0
 # default timeout for procs
 
-initial_screen = ['Welcome to the Rainbow Cloud Test UI.',
+initial_screen = ['Welcome to the Rainbow Cloud Test Framework.',
                   '',
                   'This app will perform basic API tests.',
                   '',
@@ -89,7 +89,7 @@ class RainbowUI:
         self.multiSelect = []
         self.toplist = []
         self.top = Tk()
-        self.top.title('Rainbow Cloud Test')
+        self.top.title('Rainbow Cloud Test Framework')
         self.labelfm = Frame(self.top)
         self.label = Label(self.labelfm,
                            padx=10,
@@ -102,7 +102,10 @@ class RainbowUI:
                                padx=10,
                                textvariable = self.userV)
         try:
-            self.userV.set('Project:' + os.environ['OS_TENANT_NAME'])
+            if 'OS_PROJECT_NAME' in os.environ.keys():
+                self.userV.set('Project:' + os.environ['OS_PROJECT_NAME'])
+            else:
+                self.userV.set('Project:' + os.environ['OS_TENANT_NAME'])
         except:
             self.userV.set('Project: Not Set')
         self.userLabel.grid(row=0, column=9)
@@ -336,7 +339,10 @@ class RainbowUI:
             except:
                 pass
             try:
-                self.userV.set('Project:' + os.environ['OS_TENANT_NAME'])
+                if 'OS_PROJECT_NAME' in os.environ.keys():
+                    self.userV.set('Project:' + os.environ['OS_PROJECT_NAME'])
+                else:
+                    self.userV.set('Project:' + os.environ['OS_TENANT_NAME'])
             except:
                 pass
             try:
@@ -351,11 +357,10 @@ class RainbowUI:
         print("Your environment is missing '%s'" % key)
         self._get_creds()
 
-
     def _auth_check(self):
         self.print_line("Initializing auth check...")
 
-        if (not os.environ.get('OS_TENANT_ID')) and (not os.environ.get('OS_TENANT_NAME')):
+        if (not os.environ.get('OS_TENANT_ID')) and (not os.environ.get('OS_TENANT_NAME')) and (not os.environ.get('OS_PROJECT_ID')) and (not os.environ.get('OS_PROJECT_NAME')):
             self._key_error('OS_TENANT_ID or OS_TENANT_NAME')
             return
         for key in ['OS_USERNAME', 'OS_PASSWORD', 'OS_AUTH_URL' ]:
@@ -370,7 +375,7 @@ class RainbowUI:
             self.ksclient = get_keystone_client()
             self.print_line("Auth check: PASS")
         except Exception as e:
-            self.print_line('Auth check: FAIL [%s]' % strutils.safe_encode(six.text_type(e)))
+            self.print_line('Auth check: FAIL [%s]' % e)
             # future - popup to ask to confirm password..
 
     def _print_mess(self,mess):
@@ -672,7 +677,7 @@ class RainbowUI:
             self.netIdVar.set(nid)
             newnets.append(self.nname)
         except Exception as e:
-            self.print_line(strutils.safe_encode(six.text_type(e)))
+            self.print_line(e)
             self.netIdVar.set('')
             return 0
 #        num = int(num)-1
@@ -694,7 +699,7 @@ class RainbowUI:
                 self.multiSelect.append(self.netIdVar.get())
                 count = 1
             except Exception as e:
-                self.print_line(strutils.safe_encode(six.text_type(e)))
+                self.print_line(e)
             if not len(self.multiSelect[0]):
                 self.print_line("No Network selected")
                 return
@@ -708,7 +713,7 @@ class RainbowUI:
                 delete_network(net)
                 self.print_line('instance id [%s] delete scheduled' % net)
             except Exception as e:
-                self.print_line(strutils.safe_encode(six.text_type(e)))
+                self.print_line(e)
         self.netIdVar.set('')
         del self.multiSelect[:]
         self.print_line('-------- Deletion(s) complete --------')
@@ -721,7 +726,7 @@ class RainbowUI:
                 count = 1
                 self.multiSelect.append(self.novaLV.get())
             except Exception as e:
-                self.print_line(strutils.safe_encode(six.text_type(e)))
+                self.print_line(e)
         if not len(self.multiSelect[0]):
             self.print_line("No Instance selected")
             return
@@ -735,7 +740,7 @@ class RainbowUI:
                 nova_delete(i)
                 self.print_line('instance id [%s] delete scheduled' % i)
             except Exception as e:
-                self.print_line(strutils.safe_encode(six.text_type(e)))
+                self.print_line(e)
                 self.novaLV.set('') 
         del self.multiSelect[:]
         self.print_line('-------- Deletion(s) complete --------')
@@ -985,9 +990,9 @@ class RainbowUI:
             self.print_line("running cinder create")
             self.vol = cinder_create()
             while self.vol.status == 'creating':
-                self.print_line('Polling volume [%s]' % self.vol.display_name)
+                self.print_line('Polling volume [%s]' % self.vol.name)
                 self.vol = cinder_poll(self.vol)
-                self.print_line('|%s|%s|%s' % (self.vol.id, self.vol.status, self.vol.display_name))
+                self.print_line('|%s|%s|%s' % (self.vol.id, self.vol.status, self.vol.name))
             d = int(ut() - start)
             if self.vol.status == 'available':
                 self.print_line('PASS Elapsed time [' + str(d) + '] seconds.')
@@ -995,7 +1000,7 @@ class RainbowUI:
                 return 1
             else:
                 self.print_line('Fail Elapsed time [' + str(d) + '] seconds.')
-            self.print_line('deleting volume [%s]' % self.vol.display_name)
+            self.print_line('deleting volume [%s]' % self.vol.name)
             cinder_delete(self.vol)
 
         return count
@@ -1188,8 +1193,8 @@ class RainbowUI:
 #                for v in self.toplist:
 #                    print v
             except Exception as e:
-                print(strutils.safe_encode(six.text_type(e)))
-                self.print_line(strutils.safe_encode(six.text_type(e)))
+                print(e)
+                self.print_line(e)
         else:
             self.print_line('Stack Create  canncelled.')
 
