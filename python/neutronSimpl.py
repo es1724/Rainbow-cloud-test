@@ -50,7 +50,7 @@ LOG_FORMAT='%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
 LOG_DATE = '%m-%d %H:%M'
 
 def get_neutron_client():
-    sess = get_v3_session()
+    sess = get_session()
     neutron = client.Client(session=sess)
     return neutron
 
