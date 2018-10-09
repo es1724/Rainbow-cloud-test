@@ -44,14 +44,8 @@ def get_glance():
         @ params none
         @ returns - glance object
     """
-    from keystoneauth1 import loading
-    from keystoneauth1 import session
     from glanceclient import Client
-    creds = get_v3_creds()
-    loader = loading.get_plugin_loader('password')
-    auth = loader.load_from_options(**creds)
-    s = session.Session(auth=auth)
-
+    s = get_session()
     glance = Client('2', session=s)
     
     return glance
