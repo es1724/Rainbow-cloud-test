@@ -28,7 +28,6 @@ import requests
 from keystoneclient.v3 import client
 
 from credentials import *
-#from credentials import get_keystone_creds
 
 try:
   requests.packages.urllib3.disable_warnings()
@@ -53,7 +52,7 @@ debug = False
 #    return keystone
 def get_keystone_client():
 
-    sess = get_v3_session()
+    sess = get_session()
     ks = client.Client(interface='public', session=sess)
     return ks
 
