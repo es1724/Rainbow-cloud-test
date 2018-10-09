@@ -33,14 +33,10 @@ try:
 except:
   pass
 
+from credentials import *
+
+
 debug = False
-
-import keystoneclient
-import glanceclient
-
-from keystoneclient.v2_0 import client
-from glanceclient import Client
-from credentials import get_keystone_creds
 
 def get_glance():
     """ get glance - create the glance object
@@ -48,13 +44,16 @@ def get_glance():
         @ params none
         @ returns - glance object
     """
-    kscreds = get_keystone_creds()
-    keystone = keystoneclient.v2_0.client.Client(**kscreds)
-    auth_token = keystone.auth_token
-    image_url = keystone.service_catalog.url_for(service_type='image',
-                                                 endpoint_type='publicURL')
-    image_url = re.sub(r'/v2/$', '', image_url, flags=re.IGNORECASE)
-    glance = Client('2', endpoint=image_url, token=auth_token)
+    from keystoneauth1 import loading
+    from keystoneauth1 import session
+    from glanceclient import Client
+    creds = get_v3_creds()
+    loader = loading.get_plugin_loader('password')
+    auth = loader.load_from_options(**creds)
+    s = session.Session(auth=auth)
+
+    glance = Client('2', session=s)
+    
     return glance
 
 def get_list(type = None):
