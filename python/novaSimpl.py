@@ -28,9 +28,10 @@ import logging
 import webbrowser
 from Tkinter import *
 import tkSimpleDialog
+
 from inspect import currentframe, getframeinfo
 import requests
-from credentials import get_nova_creds
+from credentials import *
 from credentials import get_keystone_creds as get_neutron_creds
 from neutronSimpl import create_network
 
@@ -39,14 +40,15 @@ try:
 except:
     pass
 
+
 debug = True
-
-
 DESCRIPTION = "Rainbow - cloud testing tool for Openstack"
 logging.basicConfig(level=logging.INFO)
 LOG = logging.getLogger(__name__)
 LOG_FORMAT='%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
 LOG_DATE = '%m-%d %H:%M'
+
+DEFAULT_NOVA_API_VERSION = '2'
 
 
 class ShowNova:
@@ -185,9 +187,13 @@ def debug_out(line):
 
 def get_nova_client():
     from novaclient import client as novaclient
-    novcreds = get_nova_creds()
-    nova = novaclient.Client('1.1', **novcreds)
+    s = get_session()
+    VERSION = DEFAULT_NOVA_API_VERSION
+    nova = novaclient.Client(VERSION, session=s)
     return nova
+
+
+
 
 def get_nova_list():
     """ get_nova_list
