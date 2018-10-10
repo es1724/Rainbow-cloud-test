@@ -48,25 +48,12 @@ def get_v2_creds():
          'auth_url': os.environ['OS_AUTH_URL']}
     if 'OS_TENANT_NAME' in os.environ.keys():
         d['tenant_name'] = os.environ['OS_TENANT_NAME']
-    if 'OS_PROJECT_NAME' in os.environ.keys():
+    elif 'OS_PROJECT_NAME' in os.environ.keys():
         d['tenant_name'] = os.environ['OS_PROJECT_NAME']
     if 'OS_TENANT_ID' in os.environ.keys():
         d['tenant_id'] = os.environ['OS_TENANT_ID']
-    if 'OS_PROJECT_ID' in os.environ.keys():
+    elif 'OS_PROJECT_ID' in os.environ.keys():
         d['tenant_id'] = os.environ['OS_PROJECT_ID']
-    return d
-
-def get_neutron_creds():
-    
-    set_timeout()
-    d = {'username': os.environ['OS_USERNAME'],
-         'password': os.environ['OS_PASSWORD'],
-         'auth_url': os.environ['OS_AUTH_URL']}
-    if 'OS_TENANT_NAME' in os.environ.keys():
-        d['tenant_name'] = os.environ['OS_TENANT_NAME']
-    if 'OS_TENANT_ID' in os.environ.keys():
-        d['tenant_id'] = os.environ['OS_TENANT_ID']
-    d['region_name'] = os.environ['OS_REGION_NAME']
     return d
 
 def get_v2_session():
