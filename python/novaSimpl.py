@@ -204,6 +204,22 @@ def get_nova_list():
     nlist = nova.servers.list()
     return nlist
 
+def get_hypervisor_list():
+    """ get_hypervisor_list - returns list of valid hypervisors
+        hypervisors must be 'up' and 'enabled' in nova services
+
+        @param: none
+
+        @returns: list of available hypervisor names
+    """
+    nova = get_nova_client()
+    h_objects = nova.hypervisors.list()
+    hlist = []
+    for obj in h_objects:
+        if (obj.state == 'up') and (obj.status == 'enabled'):
+          hlist.append(obj.hypervisor_hostname)
+    return hlist
+
 def get_flavor_list():
     """ get_flavor_list - return the flavor list
 
@@ -249,7 +265,7 @@ def get_console_out(id):
     return 0
 
 def nova_create(**kwargs):
-    """ create_instance(**kwargs) - create a tested (needs a rework)
+    """ create_instance(**kwargs) - create a single instance
 
         @params: args object from argparse
         @requires image, net-id
@@ -260,37 +276,30 @@ def nova_create(**kwargs):
     nova = get_nova_client()
 #    pdb.set_trace()
     # create an instance using the main() from novaclient.shell
-    i = kwargs['image_id']
-    f = kwargs['flavor_id']
-    nics = [{'net-id': str(kwargs['net_id'])}]
-    name = kwargs['name']
-    try:
-        num = kwargs['num_instances']
-    except:
-        num = 1
-    if num == 1:
-        try:
-            v = nova.servers.create(name   = name,
-                                    image  = i,
-                                    flavor = f,
-                                    nics  = nics
-                                   )
-        except:
-            e = sys.exc_info()[0]
-            print('%s:ERROR: %s' % (__name__,e.message))
-            raise
+    kwa = {} # dict of create arges 
+    kwa['image'] = kwargs['image_id']
+    kwa['flavor'] = kwargs['flavor_id']
+    kwa['nics'] = [{'net-id': str(kwargs['net_id'])}]
+    kwa['name']= kwargs['name']
+    ##############################################################
+    # if we are using availaiblity zones to build to a specific
+    # host we ignore num_instances
+    # note that novaclient.Client.server.create() takes a minimum of 4 args
+    ##############################################################
+    if 'availability_zone' in kwargs:
+        kwa['availability_zone'] = kwargs['availability_zone']
+    elif 'num_instances' in kwargs:
+        kwa['min_count'] = kwargs['num_instances']
+        kwa['max_count'] = kwargs['num_instances']
     else:
-        try:
-            v = nova.servers.create(name   = name,
-                                    image  = i,
-                                    min_count  = num,
-                                    max_count  = num,
-                                    flavor = f,
-                                    nics  = nics
-                                   )
-        except Exception as e:
-            print('%s:ERROR: %s' % (__name__,str(e.message)))
-            raise
+        # dummy value
+        kwa['key_name'] = None
+    try:
+        v = nova.servers.create(**kwa)
+    except:
+        e = sys.exc_info()[0]
+        print('%s:ERROR: %s' % (__name__,e.message))
+        raise
     return v
 
 
