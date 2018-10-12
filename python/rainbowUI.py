@@ -256,6 +256,7 @@ class RainbowUI:
         self.novLB = Bbut(self.bufm1, "Nova list", self.nova_list)
         self.novDB = Rbut(self.bufm1, "Nova delete", self._nova_delete)
         self.novSB = Gbut(self.bufm1, "Nova show", self._nova_show)
+        self.novaBA = Gbut(self.bufm1, "Build All", self.nova_boot_all)
         self.pollB = Bbut(self.bufm1, 'Poll VM', self._poll)
 
         self.runB = Bbut(self.bufm1, "Run", self.run_adhoc)
@@ -274,13 +275,14 @@ class RainbowUI:
         self.novaCB.grid(row=1,column=1)
         self.novDB.grid(row=2, column=1)
         self.novSB.grid(row=3, column=1)
-        self.pollB.grid(row=4, column=1)
+        self.novaBA.grid(row=4,column=1)
 
         # column 2
         self.hotGB.grid(row=0, column=2)
         self.hotRB.grid(row=1, column=2)
         self.staLB.grid(row=2, column=2)
         self.staDB.grid(row=3, column=2)
+        self.pollB.grid(row=4, column=2)
 
         # column 4
         self.selB.grid(row=0,  column=4)
@@ -811,6 +813,40 @@ class RainbowUI:
         self.activeVar = self.novaLV
         return
 
+    def nova_boot_all(self):
+        """  nova_boot_all - create an instance on every hypervisor
+
+             @params: none - gets data from gui selection process
+
+             @ side effects - sets self.novaLV
+             @returns: the id of the instance
+        """
+        nid = None
+        self._clear()
+        self.add_header('---------[Nova Boot]---------')
+        if len(self.multiSelect) > 0:
+            showinfo('Note','multiple selection not supported for this function')
+            del self.multiSelect[:]
+        if not self.validate():
+            return
+        self.bootName = "bootall-"
+        bb = BootBox(self.top, title = 'Boot All Hypervisors', bootName = self.bootName)
+        # when cancel is hit handle exception
+        self.bootName = bb.get_name()
+        if  self.bootName is None:
+            self.print_line('-------------[Boot Cancelled]-------------')
+            return
+        self.print_line('Getting hypervisor list...')
+        hlist = get_hypervisor_list()
+        hlist.sort()
+        for h in hlist:
+            nid = self._create_factory(h)
+            if not nid:
+                self.print_line('Build on [' + h + '] failed - cancelling builds.')
+                break
+        self.print_line('-------------[Builds Completed]----------------')
+        self.novaLV.set(nid)
+
     def nova_boot(self):
         """  nova_boot - create an instance
 
@@ -836,6 +872,20 @@ class RainbowUI:
             self.print_line('-------------[Boot Cancelled]-------------')
             return
         self.cntVar.set(int(bb.get_count()))
+
+        nid = self._create_factory()
+        self.novaLV.set(nid)
+
+    def _create_factory(self, hypervisor = None):
+        """ _create_factory - backend to support generic builds as 
+                              well as builds directed to specific
+                              hypervisors for 'build all' ops
+
+            @params: all common build params are set in GUI vars
+                     hypervisor (Default: None) the name of the
+                     hypervisor as returned form nova
+            @returns: the uui of the instance created
+        """
         create_args = {'name': self.bootName,
                        'net_id': self.netIdVar.get(),
                        'image_id': self.imageVar.get()}
@@ -845,13 +895,21 @@ class RainbowUI:
         except:
             create_args['flavor_id'] = get_flavor_byname(self.flaVar.get())
         try:
+            create_args['availability_zone'] = 'Default:' + hypervisor
+            create_args['name'] = self.bootName + hypervisor
+        except:
+            pass
+        try:
             # create dialog for cntVar
             create_args['num_instances'] = int(self.cntVar.get())
         except:
             self.cntVar.set(1)
-        for k in create_args.keys():
-            self.print_line('%s = %s' % (k, str(create_args[k])))
-            print '%s = %s' % (k, str(create_args[k]))
+        if hypervisor:
+            self.print_line('Building on [' + hypervisor + ']')
+        else:
+            for k in create_args.keys():
+                self.print_line('%s = %s' % (k, str(create_args[k])))
+                print '%s = %s' % (k, str(create_args[k]))
         start = int(ut())
         try:
             self.vm = nova_create(**create_args)
@@ -868,9 +926,6 @@ class RainbowUI:
         except:
             print '\n\nFAIL Elapsed time [' + str(d) + '] seconds.\n\n'
             self.update_status('FAIL Elapsed time [' + str(d) + '] seconds')
-
-
-        self.novaLV.set(nid)
 
         return nid
 
