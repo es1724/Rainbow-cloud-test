@@ -28,6 +28,7 @@ import logging
 import webbrowser
 from Tkinter import *
 import tkSimpleDialog
+from tkFileDialog import askopenfilename
 
 from inspect import currentframe, getframeinfo
 import requests
@@ -275,17 +276,20 @@ def nova_create(**kwargs):
     """
     nova = get_nova_client()
 #    pdb.set_trace()
+
     # create an instance using the main() from novaclient.shell
     kwa = {} # dict of create arges 
+    kwa['name'] =  kwargs['name']
     kwa['image'] = kwargs['image_id']
     kwa['flavor'] = kwargs['flavor_id']
     kwa['nics'] = [{'net-id': str(kwargs['net_id'])}]
-    kwa['name']= kwargs['name']
     ##############################################################
     # if we are using availaiblity zones to build to a specific
     # host we ignore num_instances
     # note that novaclient.Client.server.create() takes a minimum of 4 args
     ##############################################################
+    if 'userdata' in kwargs.keys():
+        kwa['userdata'] = kwargs['userdata']
     if 'availability_zone' in kwargs:
         kwa['availability_zone'] = kwargs['availability_zone']
     elif 'num_instances' in kwargs:
@@ -295,6 +299,8 @@ def nova_create(**kwargs):
         # dummy value
         kwa['key_name'] = None
     try:
+        # passing all kwargs in dict
+        # this code may need review if the openstack api changes significantly
         v = nova.servers.create(**kwa)
     except:
         e = sys.exc_info()[0]
@@ -478,13 +484,19 @@ class GetVnc:
         except:
             print "\nFailed to open console.\n"
 
-class BootBox(tkSimpleDialog.Dialog):
+class BootAllBox(tkSimpleDialog.Dialog):
 
 
     def __init__(self, parent, title = None, bootName = None):
 
         self.bootName = ''
-        self.name = ''
+        f = askopenfilename(defaultextension='.sh',title='Select User Data')
+        if not f:
+            print 'Get user data canncelled.'
+        if f:
+            self.data = f
+        else:
+            self.data = 'No user data'
         self.count = 1
         if bootName:
             self.bootName = bootName
@@ -496,9 +508,9 @@ class BootBox(tkSimpleDialog.Dialog):
         self.e1 = Entry(master)
         if self.bootName:
             self.e1.insert(0, self.bootName)
-        Label(master, text="# of instances:").grid(row=1)
+        Label(master, text="User Data:").grid(row=1)
         self.e2 = Entry(master)
-        self.e2.insert(0, '1')
+        self.e2.insert(0, self.data)
         self.e1.grid(row=0, column=1)
         self.e2.grid(row=1, column=1)
         return self.e1 # initial focus
@@ -506,7 +518,65 @@ class BootBox(tkSimpleDialog.Dialog):
     def apply(self):
 
         self.name = str(self.e1.get())
-        self.count = int(self.e2.get())
+        self.data = str(self.e2.get())
+
+
+    def get_name(self):
+
+        try:
+            return self.name
+        except:
+            return None
+
+    def get_data(self):
+
+        try:
+            return self.data
+        except:
+            return None
+
+class BootBox(tkSimpleDialog.Dialog):
+
+
+    def __init__(self, parent, title = None, bootName = None):
+
+        self.bootName = ''
+        self.name = ''
+        self.count = 1
+        if bootName:
+            self.bootName = bootName
+        f = askopenfilename(defaultextension='.sh',title='Select User Data')
+        if not f:
+            print 'Get user data canncelled.'
+        if f:
+            self.data = f
+        else:
+            self.data = 'No user data'
+
+        tkSimpleDialog.Dialog.__init__(self, parent, title = title)
+
+    def body(self, master):
+
+        Label(master, text="Name:").grid(row=0)
+        self.e1 = Entry(master)
+        if self.bootName:
+            self.e1.insert(0, self.bootName)
+        Label(master, text="User Data:").grid(row=1)
+        self.e2 = Entry(master)
+        self.e2.insert(0, self.data)
+        Label(master, text="# of instances:").grid(row=2)
+        self.e3 = Entry(master)
+        self.e3.insert(0, '1')
+        self.e1.grid(row=0, column=1)
+        self.e2.grid(row=1, column=1)
+        self.e3.grid(row=2, column=1)
+        return self.e1 # initial focus
+
+    def apply(self):
+
+        self.name = str(self.e1.get())
+        self.data = str(self.e2.get())
+        self.count = int(self.e3.get())
 
 
     def get_name(self):
@@ -514,6 +584,13 @@ class BootBox(tkSimpleDialog.Dialog):
         if self.name:
             return self.name
         else:
+            return None
+
+    def get_data(self):
+
+        try:
+            return self.data
+        except:
             return None
 
     def get_count(self):
