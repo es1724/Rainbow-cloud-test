@@ -823,24 +823,28 @@ class RainbowUI:
         """
         nid = None
         self._clear()
-        self.add_header('---------[Nova Boot]---------')
+        self.add_header('---------[Nova Boot All Hypervisors]---------')
         if len(self.multiSelect) > 0:
             showinfo('Note','multiple selection not supported for this function')
             del self.multiSelect[:]
         if not self.validate():
             return
         self.bootName = "bootall-"
-        bb = BootBox(self.top, title = 'Boot All Hypervisors', bootName = self.bootName)
+        bb = BootAllBox(self.top, title = 'Boot All Hypervisors', bootName = self.bootName)
         # when cancel is hit handle exception
         self.bootName = bb.get_name()
+        self.data = bb.get_data()
         if  self.bootName is None:
             self.print_line('-------------[Boot Cancelled]-------------')
             return
+        if self.data:
+            self.print_line('Selected user data [' + self.data + ']')
+        
         self.print_line('Getting hypervisor list...')
         hlist = get_hypervisor_list()
         hlist.sort()
         for h in hlist:
-            nid = self._create_factory(h)
+            nid = self._create_factory(self.data, h)
             if not nid:
                 self.print_line('Build on [' + h + '] failed - cancelling builds.')
                 break
@@ -871,19 +875,23 @@ class RainbowUI:
         if  self.bootName is None:
             self.print_line('-------------[Boot Cancelled]-------------')
             return
+        self.data = bb.get_data()
         self.cntVar.set(int(bb.get_count()))
 
-        nid = self._create_factory()
+        nid = self._create_factory(self.data)
         self.novaLV.set(nid)
 
-    def _create_factory(self, hypervisor = None):
+    def _create_factory(self, data = None, hypervisor = None):
         """ _create_factory - backend to support generic builds as 
                               well as builds directed to specific
                               hypervisors for 'build all' ops
 
             @params: all common build params are set in GUI vars
+                     data (Default: None) is a file object as set in the
+                     BootAllBox class of novaSimpl
                      hypervisor (Default: None) the name of the
                      hypervisor as returned form nova
+
             @returns: the uui of the instance created
         """
         create_args = {'name': self.bootName,
@@ -904,12 +912,32 @@ class RainbowUI:
             create_args['num_instances'] = int(self.cntVar.get())
         except:
             self.cntVar.set(1)
+        if data:
+            self.print_line('adding userdata [' + data + '] to args.')
+            try:
+                userdata = open(data)
+                # pass the file type object to nova
+                create_args['userdata'] = userdata
+                self.print_line('added userdata [' + userdata.name + '] to args.')
+            except IOError as e:
+                self.print_line('user data open failed.')
+                raise exceptions.CommandError("Can't open '%s': %s" %
+                                          (data, e))
         if hypervisor:
             self.print_line('Building on [' + hypervisor + ']')
+            try:
+                self.print_line('userdata = %s' % (str(create_args[userdata].name)))
+            except:
+                pass
         else:
             for k in create_args.keys():
-                self.print_line('%s = %s' % (k, str(create_args[k])))
-                print '%s = %s' % (k, str(create_args[k]))
+                # handle file object if present
+                if 'userdata' in k:
+                    self.print_line('%s = %s' % (k, str(create_args[k].name)))
+                    print '%s = %s' % (k, str(create_args[k].name))
+                else:
+                    self.print_line('%s = %s' % (k, str(create_args[k])))
+                    print '%s = %s' % (k, str(create_args[k]))
         start = int(ut())
         try:
             self.vm = nova_create(**create_args)
@@ -917,6 +945,10 @@ class RainbowUI:
             self.print_line('%s:ERROR: %s' % (__name__,str(e.message)))
             self.print_line("Nova Boot Failed")
             return
+        try:
+            dataobj.close()
+        except:
+            pass # fail silently
         d = int(ut()) - start
         try:
             nid = self.vm.id
