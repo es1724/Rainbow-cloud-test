@@ -490,6 +490,7 @@ class BootAllBox(tkSimpleDialog.Dialog):
     def __init__(self, parent, title = None, bootName = None):
 
         self.bootName = ''
+        self.filter = ''
         f = askopenfilename(defaultextension='.sh',title='Select User Data')
         if not f:
             print 'Get user data canncelled.'
@@ -504,21 +505,26 @@ class BootAllBox(tkSimpleDialog.Dialog):
 
     def body(self, master):
 
-        Label(master, text="Name:").grid(row=0)
+        Label(master, text="VM Name:").grid(row=0)
         self.e1 = Entry(master)
         if self.bootName:
             self.e1.insert(0, self.bootName)
-        Label(master, text="User Data:").grid(row=1)
+        Label(master, text="User Data File:").grid(row=1)
         self.e2 = Entry(master)
         self.e2.insert(0, self.data)
+        Label(master, text="Host Filter:").grid(row=2)
+        self.e3 = Entry(master)
+        self.e3.insert(0, '')
         self.e1.grid(row=0, column=1)
         self.e2.grid(row=1, column=1)
+        self.e3.grid(row=2, column=1)
         return self.e1 # initial focus
 
     def apply(self):
 
         self.name = str(self.e1.get())
         self.data = str(self.e2.get())
+        self.filter = str(self.e3.get())
 
 
     def get_name(self):
@@ -534,6 +540,13 @@ class BootAllBox(tkSimpleDialog.Dialog):
             return self.data
         except:
             return None
+
+    def get_filter(self):
+
+        try:
+            return self.filter
+        except:
+            return ''
 
 class BootBox(tkSimpleDialog.Dialog):
 
