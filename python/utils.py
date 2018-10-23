@@ -21,8 +21,9 @@
 version = '0.5.0'
 
 from cStringIO import StringIO
-import sys
 import os
+import sys
+import re
 
 
 
@@ -41,6 +42,18 @@ def read_list_file(lfile):
         if not l.startswith("#"):
             slist.append(l.rstrip())
     return slist
+
+def filter_list(pattern, list):
+    """ fiter_list(pattern) - give <pattern> return a list of
+        items matching using regex
+    """
+    pat = re.compile(pattern)
+    l = []
+    for i in list:
+      if pat.search(i):
+        l.append(i)
+    return l
+
 
 class Capture(list):
     def __enter__(self):
