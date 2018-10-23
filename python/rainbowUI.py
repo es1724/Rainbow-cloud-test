@@ -19,21 +19,23 @@
 #
 #    Authors: Ed Smith (edward.smith@att.com)
 #             Dan Bice (dan.bice@att.com)
+import argparse
+from buttons import *
 import os
+import re
 import sys
 import six
-#from heatclient.openstack.common import strutils
 import subprocess
-from buttons import *
+import sys
+from time import ctime as ct
+from time import time as ut
 from Tkinter import *
 from tkFileDialog import asksaveasfile
 from tkFileDialog import askopenfilename
 from tkMessageBox import *
+
 from credentials import *
 from heatSimpl import *
-import argparse
-from time import ctime as ct
-from time import time as ut
 from utils import *
 from novaSimpl import *
 from glanceSimpl import check_glance_api
@@ -45,6 +47,7 @@ from cinderSimpl import check_cinder_api
 from neutronSimpl import *
 from keystoneSimpl import check_keystone
 from keystoneSimpl import get_keystone_client
+
 
 version = '3.0.0'
 DESCRIPTION = "Rainbow UI openstack test framework."
@@ -61,7 +64,6 @@ initial_screen = ['Welcome to the Rainbow Cloud Test Framework.',
                   '\'Nova Create\' will create an instance.',
                   '\'Poll\' will poll instance status.'
                  ]
-
 
 class RainbowUI:
 
@@ -823,7 +825,14 @@ class RainbowUI:
         """
         nid = None
         self._clear()
+        self.filterVar.set('')
         self.add_header('---------[Nova Boot All Hypervisors]---------')
+        self.print_line('NOTE: Boot All will attempt to boot on all hypervisors.')
+        self.print_line('      To build on a specific hypervisor or rack, enter')
+        self.print_line('      full or partial name in the [Host Filter] field.')
+        self.print_line('')
+        self.print_line('      To Cancel use the [Clear All] button to')
+        self.print_line('      interrupt the process.')
         if len(self.multiSelect) > 0:
             showinfo('Note','multiple selection not supported for this function')
             del self.multiSelect[:]
@@ -834,22 +843,31 @@ class RainbowUI:
         # when cancel is hit handle exception
         self.bootName = bb.get_name()
         self.data = bb.get_data()
+        self.filterVar.set(bb.get_filter())
         if  self.bootName is None:
             self.print_line('-------------[Boot Cancelled]-------------')
             return
         if self.data:
             self.print_line('Selected user data [' + self.data + ']')
         
+        
         self.print_line('Getting hypervisor list...')
         hlist = get_hypervisor_list()
-        hlist.sort()
-        for h in hlist:
-            nid = self._create_factory(self.data, h)
-            if not nid:
-                self.print_line('Build on [' + h + '] failed - cancelling builds.')
-                break
-        self.print_line('-------------[Builds Completed]----------------')
-        self.novaLV.set(nid)
+        filtered_list = filter_list(self.filterVar.get(), hlist)
+        if len(filtered_list):
+            filtered_list.sort()
+            for h in filtered_list:
+                #self.print_line('building on [' + h + ']')
+                nid = self._create_factory(self.data, h)
+                if not nid:
+                    self.print_line('Build on [' + h + '] failed - cancelling builds.')
+                    break
+            self.print_line('-------------[Builds Completed]----------------')
+            self.novaLV.set(nid)
+        else:
+            self.print_line('Filtered list returned Zero results.')
+            return
+
 
     def nova_boot(self):
         """  nova_boot - create an instance
@@ -913,15 +931,15 @@ class RainbowUI:
         except:
             self.cntVar.set(1)
         if data:
-            self.print_line('adding userdata [' + data + '] to args.')
+            #self.print_line('adding userdata [' + data + '] to args.')
             try:
                 userdata = open(data)
                 # pass the file type object to nova
                 create_args['userdata'] = userdata
-                self.print_line('added userdata [' + userdata.name + '] to args.')
             except IOError as e:
-                self.print_line('user data open failed.')
-                raise exceptions.CommandError("Can't open '%s': %s" %
+                self.print_line('user data open failed - cancelling build.')
+                self.print_line(str(e))
+                raise IOError("Can't open file '%s': %s" %
                                           (data, e))
         if hypervisor:
             self.print_line('Building on [' + hypervisor + ']')
