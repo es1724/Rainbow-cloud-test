@@ -49,7 +49,8 @@ from keystoneSimpl import check_keystone
 from keystoneSimpl import get_keystone_client
 
 
-version = '3.0.0'
+version = '3.0.1'
+date = '10/24/2018'
 DESCRIPTION = "Rainbow UI openstack test framework."
 DEBUG = 0
 # default timeout for procs
