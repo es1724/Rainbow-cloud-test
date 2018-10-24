@@ -16,12 +16,15 @@ list of required python modules:
 
 python-tk
 python-novaclient
+python-heatclient
 python-glanceclient
 python-cinderclient
 python-neutronclient
 python-keystoneclient
+python-openstackclient
 
 this project was built on plain ubuntu 14.04 trusty and should work with the
 default packages that install from that repo
 
 The versions are just the ones used in testing, your mileage may vary..
+
