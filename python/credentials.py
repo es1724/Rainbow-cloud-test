@@ -126,38 +126,42 @@ class CredBox(tkSimpleDialog.Dialog):
         return self.user  # initial focus
 
     def set_env(self):
-        if 'OS_USERNAME' in os.environ.keys():
-            self.userV.set(os.environ['OS_USERNAME'])
+        if 'OS_USERNAME' not in os.environ.keys():
+            os.environ['OS_USERNAME'] = "Credentials Not Defined."
+        self.userV.set(os.environ['OS_USERNAME'])
         if 'OS_PASSWORD' in os.environ.keys():
             self.paswV.set(os.environ['OS_PASSWORD'])
         if 'OS_AUTH_URL' in os.environ.keys():
             self.aurlV.set(os.environ['OS_AUTH_URL'])
-        if 'v3' in os.environ['OS_AUTH_URL']:
-            if 'OS_PROJECT_NAME' in os.environ.keys():
-                self.projV.set(os.environ['OS_PROJECT_NAME'])
-            if 'OS_PROJECT_ID' in os.environ.keys():
-                self.pridV.set(os.environ['OS_PROJECT_ID'])
+            if 'v3' in os.environ['OS_AUTH_URL']:
+                if 'OS_PROJECT_NAME' in os.environ.keys():
+                    self.projV.set(os.environ['OS_PROJECT_NAME'])
+                if 'OS_PROJECT_ID' in os.environ.keys():
+                    self.pridV.set(os.environ['OS_PROJECT_ID'])
+                else:
+                    self.pridV.set('Optional')
+                if 'OS_TENANT_ID' in os.environ.keys():
+                    self.pridV.set(os.environ['OS_TENANT_ID'])
+                if 'OS_USER_DOMAIN_NAME' in os.environ.keys():
+                    self.domaV.set(os.environ['OS_USER_DOMAIN_NAME'])
+                else:
+                    self.domaV.set(os.environ['OS_USER_DOMAIN_NAME'])
             else:
-                self.pridV.set('Optional')
-            if 'OS_TENANT_ID' in os.environ.keys():
-                self.pridV.set(os.environ['OS_TENANT_ID'])
-            if 'OS_USER_DOMAIN_NAME' in os.environ.keys():
-                self.domaV.set(os.environ['OS_USER_DOMAIN_NAME'])
-            else:
-                self.domaV.set(os.environ['OS_USER_DOMAIN_NAME'])
-        else:
-            if 'OS_TENANT_NAME' in os.environ.keys():
-                self.projV.set(os.environ['OS_TENANT_NAME'])
-            if 'OS_TENANT_ID' in os.environ.keys():
-                self.pridV.set(os.environ['OS_TENANT_ID'])
-            else:
-                self.pridV.set('Optional')
-            if 'OS_REGION_NAME' in os.environ.keys():
-                self.siteV.set(os.environ['OS_REGION_NAME'])
+                if 'OS_TENANT_NAME' in os.environ.keys():
+                    self.projV.set(os.environ['OS_TENANT_NAME'])
+                if 'OS_TENANT_ID' in os.environ.keys():
+                    self.pridV.set(os.environ['OS_TENANT_ID'])
+                else:
+                    self.pridV.set('Optional')
+                if 'OS_REGION_NAME' in os.environ.keys():
+                    self.siteV.set(os.environ['OS_REGION_NAME'])
 
 
     def apply(self):
-        if 'v3' in os.environ['OS_AUTH_URL']:
+        os_auth_url = self.aurlV.get().rstrip()
+        if not len(os_auth_url):
+            return
+        if 'v3' in os_auth_url:
             self.result = {'OS_USERNAME': self.userV.get().rstrip(),
                            'OS_PASSWORD': self.paswV.get().rstrip(),
                            'OS_PROJECT_NAME': self.projV.get().rstrip(),
@@ -173,36 +177,6 @@ class CredBox(tkSimpleDialog.Dialog):
                            'OS_AUTH_URL': self.aurlV.get().rstrip()}
 
 
-
-class PassBox(tkSimpleDialog.Dialog):
-    """ gui for username/password entry (deprecated) """
-
-    def body(self, master):
-
-
-        # 2 segments user/pass and all
-
-        Label(master, text="User:").grid(row=0,sticky=E)
-        Label(master, text="Password:").grid(row=1,sticky=E)
-        self.userV = StringVar()
-        self.user = Entry(master, textvariable=self.userV)
-        self.paswV = StringVar()
-        self.pasw = Entry(master, textvariable=self.paswV, show="*")
-        self.set_env()
-        self.user.grid(row=0, column=1)
-        self.pasw.grid(row=1, column=1)
-
-        return self.user  # initial focus
-
-    def set_env(self):
-        if 'OS_USERNAME' in os.environ.keys():
-            self.userV.set(os.environ['OS_USERNAME'])
-        if 'OS_PASSWORD' in os.environ.keys():
-            self.paswV.set(os.environ['OS_PASSWORD'])
-
-    def apply(self):
-        self.result = {'OS_USERNAME': self.userV.get().rstrip(),
-                       'OS_PASSWORD': self.paswV.get().rstrip()}
 
 
 if __name__ == '__main__':
