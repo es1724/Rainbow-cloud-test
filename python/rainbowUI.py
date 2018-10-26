@@ -52,7 +52,7 @@ from keystoneSimpl import get_keystone_client
 version = '3.0.1'
 date = '10/24/2018'
 DESCRIPTION = "Rainbow UI openstack test framework."
-DEBUG = 0
+DEBUG = 1
 # default timeout for procs
 
 initial_screen = ['Welcome to the Rainbow Cloud Test Framework.',
@@ -148,7 +148,7 @@ class RainbowUI:
         if len(self.siteList):
             self.siteOVar.set(self.siteList[0])
         else:
-            self.messages.append('Warning: OS_REGION_NAME is not set - using default site')
+#            self.messages.append('Warning: OS_REGION_NAME is not set - using default site')
             self.siteOVar.set('None')
         self.siteOM = apply(OptionMenu, (self.apivfm, self.siteOVar) + tuple(self.siteList))
         self.siteV.set('Site:%s' % self.siteOVar.get())
@@ -226,8 +226,6 @@ class RainbowUI:
         self.cmndE = Entry(self.varfm, textvariable=self.cmndV, width=36, bd=2)
         self.cmndE.grid(row=5, column=1)
 
-
-
         # button frame
         self.bufm1 = Frame(self.bframe)
 
@@ -292,11 +290,6 @@ class RainbowUI:
         self.netCB.grid(row=1, column=4)
         self.vncCB.grid(row=2, column=4)
 
-# net delete removed
-#        self.netDB.grid(row=2, column=2)
-
-
-
         self.varfm.pack(side=LEFT)
         self.bufm1.pack(side=LEFT)
         self.bframe.pack(side=LEFT)
@@ -314,8 +307,11 @@ class RainbowUI:
             self.print_line(l)
         # print any startup messages
         self._print_mess(self.messages)
+        # check for valid credential
+        self._cred_check()
         # run auth_check
         self._auth_check()
+######################################## end of frame
 
     def _debug(self, stuff):
         if DEBUG:
@@ -324,7 +320,7 @@ class RainbowUI:
             
     def _get_creds(self):
         cb = CredBox(self.top)
-        self.print_line(cb.result)
+#        self._debug(cb.result)
         # try captures exception on cancel
         try:
             for key in cb.result.keys():
@@ -345,28 +341,52 @@ class RainbowUI:
                 pass
             try:
                 if 'OS_PROJECT_NAME' in os.environ.keys():
-                    os.environ['OS_TENANT_ID'] = os.environ['OS_PROJECT_NAME']
+                    os.environ['OS_TENANT_NAME'] = os.environ['OS_PROJECT_NAME']
                     self.userV.set('Project:' + os.environ['OS_PROJECT_NAME'])
                 else:
                     self.userV.set('Project:' + os.environ['OS_TENANT_NAME'])
             except:
                 pass
             try:
-                
                 if os.environ['OS_TENANT_ID'] == 'Optional':
                     del os.environ['OS_TENANT_ID']
             except:
                 pass
+#                self._get_creds()
         except:
             self.print_line('Login cancelled.')
 
     def _key_error(self,key):
         print("Your environment is missing '%s'" % key)
-        self._get_creds()
+
+    def _cred_check(self):
+        print "_cred_check()"
+        er_msg = ['Notice: No rc file has been sourced.',
+                  'you can either:',
+                  'a) source an rc file prior to starting rainbow',
+                  '-  or  -',
+                  'b) enter your credentials.']
+        for key in ['OS_USERNAME', 'OS_PASSWORD', 'OS_AUTH_URL' ]:
+            if key not in os.environ.keys():
+                self._clear()
+                for l in er_msg:
+                    self.print_line(l)
+                self._key_error(key)
+                self._get_creds()
+                break
+#            if not len(os.environ[key]):
+#                self._clear()
+#                for l in er_msg:
+#                    self.print_line(l)
+#                self._get_creds()
+#                break
 
     def _auth_check(self):
         self.print_line("Initializing auth check...")
-
+        # check for valid AUTH_URL
+        if 'OS_AUTH_URL' not in os.environ.keys():
+            self.print_line('Warning: OS_AUTH_URL not set - source rc file or login to continue..')
+            return
         if 'v3' in os.environ['OS_AUTH_URL']:
             print "using v3 auth.."
             if (not os.environ.get('OS_PROJECT_ID')) and (not os.environ.get('OS_PROJECT_NAME')):
@@ -377,13 +397,6 @@ class RainbowUI:
             if (not os.environ.get('OS_TENANT_ID')) and (not os.environ.get('OS_TENANT_NAME')):
                 self._key_error('OS_TENANT_ID or OS_TENANT_NAME')
                 return
-        for key in ['OS_USERNAME', 'OS_PASSWORD', 'OS_AUTH_URL' ]:
-            if key not in os.environ.keys():
-                self._key_error(key)
-                break
-            if not len(os.environ[key]):
-                self._get_creds()
-                break
 
         try:
             self.ksclient = get_keystone_client()
