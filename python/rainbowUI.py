@@ -400,7 +400,8 @@ class RainbowUI:
 
         try:
             self.ksclient = get_keystone_client()
-            self.print_line("Auth check: PASS")
+            if check_keystone():
+                self.print_line("Auth check: PASS")
         except Exception as e:
             self.print_line('Auth check: FAIL [%s]' % e)
             # future - popup to ask to confirm password..
