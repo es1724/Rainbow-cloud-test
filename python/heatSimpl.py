@@ -23,36 +23,32 @@
 #
 #    interface to all things heat
 
-import time
-from Tkinter import *
-import tkSimpleDialog
-version = '0.0.9'
+version = '0.1.0'
 
 import pdb
 import os
 import re
+import requests
 import sys
 reload(sys)
-sys.setdefaultencoding('utf8')
-import requests
+import time
+from Tkinter import *
+import tkSimpleDialog
 try:
   requests.packages.urllib3.disable_warnings()
 except:
   pass
 
-debug = False
-
-from Tkinter import *
-import tkSimpleDialog
-
 import heatclient.shell as shell
 import heatclient.exc as exc
+from heatclient import exc
+from heatclient.common import template_utils
+
 from credentials import *
 
-
-
+debug = False
 DEFAULT_HEATCLIENT_VERSION = '1'
-
+sys.setdefaultencoding('utf8')
 
 # noinspection PyIncorrectDocstring
 class RainbowHeat(object):
@@ -112,14 +108,15 @@ class RainbowHeat(object):
         @returns: 0 on success - 1 on error
         """
 
-        args = ['stack-create',
-            '--template-file',
-            tfile,
-            name]
+        hc = self.get_heat_client()
+        files, template = template_utils.process_template_path(tfile)
+
         try:
-          shell.HeatShell().main(args)
+            hc.stacks.create(stack_name=name, template=template, files=files)
         except Exception as e:
-          raise
+            print ('ERROR: %s' % e.message)
+            raise
+
 
     def get_list():
     #    print "get_list"
