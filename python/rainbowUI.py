@@ -52,7 +52,7 @@ from keystoneSimpl import get_keystone_client
 version = '3.0.1'
 date = '10/24/2018'
 DESCRIPTION = "Rainbow UI openstack test framework."
-DEBUG = 1
+DEBUG = 0
 # default timeout for procs
 
 initial_screen = ['Welcome to the Rainbow Cloud Test Framework.',
