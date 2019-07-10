@@ -247,7 +247,7 @@ class RainbowUI:
         self.hotGB = Gbut(self.bufm1, "HOT Gen", self._hot_gen)
         self.hotRB = Gbut(self.bufm1, "Stack Create", self._run_hot)
         self.staLB = Gbut(self.bufm1, "Stack list", self._stack_list)
-        self.staDB = Gbut(self.bufm1, "Stack delete", self._stack_delete)
+        self.staDB = Rbut(self.bufm1, "Stack delete", self._stack_delete)
 
 
 #        self.netDB = Rbut(self.bufm1, "Net Delete", self._net_delete)
@@ -853,8 +853,8 @@ class RainbowUI:
             del self.multiSelect[:]
         if not self.validate():
             return
-        self.bootName = "bootall-"
-        bb = BootAllBox(self.top, title = 'Boot All Hypervisors', bootName = self.bootName)
+        self.bootName = "buildall-"
+        bb = BootAllBox(self.top, title = 'Boot on All Compute hosts', bootName = self.bootName)
         # when cancel is hit handle exception
         self.bootName = bb.get_name()
         self.data = bb.get_data()
@@ -866,7 +866,7 @@ class RainbowUI:
             self.print_line('Selected user data [' + self.data + ']')
         
         
-        self.print_line('Getting hypervisor list...')
+        self.print_line('Getting compute host list...')
         hlist = get_hypervisor_list()
         filtered_list = filter_list(self.filterVar.get(), hlist)
         if len(filtered_list):
@@ -1231,13 +1231,19 @@ class RainbowUI:
             pass
         self.print_line('-----------[Template Generation Complete]------------')
 
-
-
     def _stack_list(self):
         print "0"
         rh = RainbowHeat()
         try:
+            self._clear()
             self.print_line('Retrieving list..')
+            if len(self.novaLV.get()):
+                filter = self.novaLV.get()
+            else:
+                filter = self.filterVar.get()
+            if len(filter):
+                self.print_line('Filtering on [%s]' % filter)
+                p = re.compile(filter, re.IGNORECASE)
             hl = rh.stack_list()
             self._clear()
             self.offset = 3
@@ -1248,6 +1254,9 @@ class RainbowUI:
             # pad the toplist for headers
             self.toplist = []
             for s in hl:
+                if len(filter):
+                    if not p.match(s.id) and not p.findall(s.stack_name):
+                        continue
                 self.toplist.append(s.id)
                 self.print_line('| %36s | %21s | %15s | %20s |' %
                     (s.id,
@@ -1255,13 +1264,12 @@ class RainbowUI:
                      s.stack_status,
                      s.creation_time))
             self.print_line('+--------------------------------------+-----------------------+-----------------+----------------------+')
-            # share the novaLV - will change the name in the next major version?
-            self.activeVar = self.novaLV
-            self.activeVar.set('')
         except:
             e = sys.exc_info()[0]
             self.print_line('ERROR: %s' % e.message)
             self.print_line("Stack List Failed")
+        # we set the active var to novalv to allow uuid selection
+        self.activeVar = self.novaLV
 
     def _stack_delete(self):
         self._clear()
@@ -1324,6 +1332,7 @@ class RainbowUI:
             except Exception as e:
                 print(e)
                 self.print_line(e)
+            rh.stack_list()
         else:
             self.print_line('Stack Create  canncelled.')
 
