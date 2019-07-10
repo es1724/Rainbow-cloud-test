@@ -798,17 +798,21 @@ class RainbowUI:
     def nova_list(self):
         self._clear()
         self._set_site()
-        self.add_header('---------[Nova List]---------')
+        self.add_header('---------[Retrieving List]---------')
         del self.multiSelect[:]
-        self.print_line('Retrieving list..')
-        #del self.toplist[:]
-        self.toplist = []
-        nlist = get_nova_list()
-        if len(self.novaLV.get()):
-            p = re.compile(self.novaLV.get(), re.IGNORECASE)
-        elif len(self.filterVar.get()):
-            p = re.compile(self.filterVar.get(), re.IGNORECASE)
 
+        if len(self.novaLV.get()):
+            filter = self.novaLV.get()
+        else:
+            filter = self.filterVar.get()
+        if len(filter):
+            self.print_line('Filtering on [%s]' % filter)
+            p = re.compile(filter, re.IGNORECASE)
+
+        nlist = get_nova_list()
+        self._clear()
+        self.add_header('---------[Nova List]---------')
+        self.toplist = []
         for i in nlist:
             try:
                 if not p.match(i.id) and not p.findall(i.name):
@@ -1003,12 +1007,19 @@ class RainbowUI:
         self._set_site()
         self.type = 'Image'
         self.toplist = []
-        glist = glance_image_list()
         if len(self.imageVar.get()):
-            p = re.compile(self.imageVar.get(), re.IGNORECASE)
+            filter = self.imageVar.get()
         elif len(self.filterVar.get()):
-            p = re.compile(self.filterVar.get(), re.IGNORECASE)
+            filter = self.filterVar.get()
 
+        try:
+            if len(filter):
+                self.print_line('Filtering on [%s]' % filter)
+                p = re.compile(filter, re.IGNORECASE)
+        except:
+            pass
+
+        glist = glance_image_list()
         self._clear()
         self.add_header('---------[Glance Image List]---------')
         # reset the filter
@@ -1034,22 +1045,28 @@ class RainbowUI:
 
     def neuNl(self):
         self._clear()
-        self.add_header('---------[Network List]---------')
+        self.add_header('---------[Retrieving Network List]---------')
         del self.multiSelect[:]
         self._set_site()
         self.type = 'Net'
         #del self.toplist[:]
+        if len(self.netIdVar.get()):
+            filter = self.netIdVar.get()
+        else:
+            filter = self.filterVar.get()
+        if len(filter):
+            self.print_line('Filtering on [%s]' % filter)
+            p = re.compile(filter, re.IGNORECASE)
         self.toplist = []
         nl = neutron_net_list()
+        self._clear()
+        self.add_header('---------[Network List]---------')
         for i in nl['networks']:
-            if len(self.netIdVar.get()):
-                p = re.compile(self.netIdVar.get(), re.IGNORECASE)
+            try:
                 if not p.match(i['id']) and not p.match(i['name']):
                     continue
-            elif len(self.filterVar.get()):
-                p = re.compile(self.filterVar.get(), re.IGNORECASE)
-                if not p.match(i['id']) and not p.match(i['name']):
-                    continue
+            except:
+                pass
             self.toplist.append(i['id'])
             self.print_line('|%s|%s|%s' % (i['id'], i['status'].ljust(8), i['name']))
 #        if len(self.toplist) == 1:
