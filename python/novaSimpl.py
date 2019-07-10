@@ -18,7 +18,7 @@
 #
 #    Authors: Ed Smith (edward.smith@att.com)
 #             Dan Bice (dan.bice@att.com)
-Version = '0.5.0'
+Version = '0.6.0'
 import re
 import sys
 import six
@@ -104,15 +104,13 @@ class ShowNova:
         try:
             self.server = self.nc.servers.get(iid)
             self.allinfo = self.server.__dict__
-            print "before"
             for k in self.attribs:
                 try:
                     self.info[k] = self.allinfo[k]
                 except KeyError:
-                    print "key error"
+                    print "key[%s] not found"
                     pass
             self.reformat()
-            print "after"
         except:
             e = sys.exc_info()[0]
             print('Exception [%s]' % e.message)
@@ -150,9 +148,12 @@ class ShowNova:
         # u'links': [{u'href': u'http://compute-aic.pdk1.cci.att.com:8774/ab83ab7adcb74fec9682fae6b3ba9ad9
         # /images/c6a7f01b-f232-40a6-b78a-78550153950e', u'rel': u'bookmark'}]}]
         if 'image' in self.info.keys():
-            im = self.nc.images.get(self.info['image']['id'])
-            iname = im.name + '(' + im.id + ')'
-            self.info['image'] = self.nc.images.get(self.info['image']['id']).name + '(' + self.info['image']['id'] + ')'
+            try:
+                im = self.nc.images.get(self.info['image']['id'])
+                iname = im.name + '(' + im.id + ')'
+                self.info['image'] = self.nc.images.get(self.info['image']['id']).name + '(' + self.info['image']['id'] + ')'
+            except:
+                im = "No Image found for id [%s]" % self.info['image']['id']
 
         #### key[security_groups] val[[{u'name': u'default'}]]
         if 'security_groups' in self.info.keys():
@@ -208,6 +209,8 @@ def get_nova_list():
 def get_hypervisor_list():
     """ get_hypervisor_list - returns list of valid hypervisors
         hypervisors must be 'up' and 'enabled' in nova services
+        we return the list of 'host' names as they may
+        differ from the 'hypervisor' names
 
         @param: none
 
@@ -215,10 +218,10 @@ def get_hypervisor_list():
     """
     nova = get_nova_client()
     h_objects = nova.hypervisors.list()
-    hlist = []
+    hlist = [] 
     for obj in h_objects:
         if (obj.state == 'up') and (obj.status == 'enabled'):
-          hlist.append(obj.hypervisor_hostname)
+          hlist.append(obj._info['service']['host'])
     return hlist
 
 def get_flavor_list():
